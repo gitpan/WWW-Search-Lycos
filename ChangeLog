@@ -1,3 +1,7 @@
+2003-10-22  Kingpin  <mthurn@verizon.net>
+
+	* Lycos.pm (parse_tree): fix typo which caused blank URLs (thanks to Thomas Busch)
+
 2003-09-20  Kingpin  <mthurn@verizon.net>
 
 	* Lycos.pm (parse_tree): fix parsing for new lycos.com output format

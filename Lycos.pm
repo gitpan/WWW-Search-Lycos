@@ -1,7 +1,7 @@
 # Lycos.pm
 # by Wm. L. Scheding and Martin Thurn
 # Copyright (C) 1996-1998 by USC/ISI
-# $Id: Lycos.pm,v 1.29 2003-09-20 17:17:09-04 kingpin Exp kingpin $
+# $Id: Lycos.pm,v 1.30 2003-10-23 07:07:51-04 kingpin Exp kingpin $
 
 =head1 NAME
 
@@ -133,7 +133,7 @@ require Exporter;
 @EXPORT_OK = qw();
 @ISA = qw(WWW::Search Exporter);
 
-$VERSION = '2.18';
+$VERSION = '2.19';
 $MAINTAINER = 'Martin Thurn <mthurn@cpan.org>';
 
 use Carp;
@@ -261,7 +261,7 @@ sub parse_tree
         ($oREL->attr('_tag') eq 'a')
        )
       {
-      my $sURL = $oREL->attr('href') || '';
+      $sURL = $oREL->attr('href') || '';
       unless ($sURL ne '')
         {
         next IS_TAG;

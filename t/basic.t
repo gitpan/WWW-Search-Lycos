@@ -10,10 +10,16 @@ BEGIN { use_ok('WWW::Search::Lycos') };
 my $iDebug = 0;
 my $iDump = 0;
 
+# goto TEST_NOW;
 # This test returns no results (but we should not get an HTTP error):
 &my_test('normal', $WWW::Search::Test::bogus_query, 0, 0, $iDebug);
+TEST_NOW:
+$iDump = 0; # for debugging
 &my_test('normal', 'disest'.'ablishmentarianistic', 1, 9, $iDebug, $iDump);
+# goto ALL_DONE;
 &my_test('normal', 'antidisest'.'ablishmentarianistic', 21, 29, $iDebug, $iDump);
+ALL_DONE:
+exit 0;
 
 sub my_engine
   {
