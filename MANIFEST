@@ -1,0 +1,7 @@
+ChangeLog
+MANIFEST
+Makefile.PL
+README
+lib/WWW/Search/Lycos.pm
+lib/WWW/Search/Lycos/Pages.pm
+test.pl

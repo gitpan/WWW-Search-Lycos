@@ -1,0 +1,5 @@
+2000-06-15  Kingpin  <mthurn@tasc.com>
+
+	* lib/WWW/Search/Lycos.pm: new method gui_query, and parse new output format
+
+Revision history for Perl extension WWW::Search::Lycos.
