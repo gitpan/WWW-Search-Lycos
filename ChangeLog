@@ -1,3 +1,11 @@
+2003-09-20  Kingpin  <mthurn@verizon.net>
+
+	* Lycos.pm (parse_tree): fix parsing for new lycos.com output format
+
+	* t/gui.t: new file
+
+	* t/basic.t: new file
+
 2003-01-27  Kingpin  <mthurn@carbon>
 
 	* Lycos.pm (parse_tree): fix parsing for new lycos.com output format

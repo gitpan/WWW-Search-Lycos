@@ -1,7 +1,7 @@
 # Lycos.pm
 # by Wm. L. Scheding and Martin Thurn
 # Copyright (C) 1996-1998 by USC/ISI
-# $Id: Lycos.pm,v 1.27 2003-03-28 08:09:09-05 kingpin Exp kingpin $
+# $Id: Lycos.pm,v 1.29 2003-09-20 17:17:09-04 kingpin Exp kingpin $
 
 =head1 NAME
 
@@ -29,9 +29,9 @@ be done through L<WWW::Search> objects.
 www.lycos.com is sometimes slow to respond; but I have not had a
 problem with the default timeout.
 
-www.lycos.com does not give the score, date, nor size of the pages at
-the resulting URLs; therefore change_date(), score(), and size() will
-never have a value.
+www.lycos.com does not give the date nor size of the pages at the
+resulting URLs; therefore change_date() and size() will never have a
+value.
 
 =head1 SEE ALSO
 
@@ -40,11 +40,6 @@ To make new back-ends, see L<WWW::Search>.
 =head1 BUGS
 
 Please tell the author if you find any!
-
-=head1 TESTING
-
-This module adheres to the WWW::Search test mechanism.
-See $TEST_CASES below.
 
 =head1 AUTHOR
 
@@ -62,7 +57,7 @@ MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 VERSION HISTORY
 
-If it is not listed here, then it was not a meaningful nor released revision.
+See ChangeLog for more information.
 
 =head2 2.16, 2003-01-27
 
@@ -138,7 +133,7 @@ require Exporter;
 @EXPORT_OK = qw();
 @ISA = qw(WWW::Search Exporter);
 
-$VERSION = '2.17';
+$VERSION = '2.18';
 $MAINTAINER = 'Martin Thurn <mthurn@cpan.org>';
 
 use Carp;
@@ -156,6 +151,7 @@ sub gui_query
                          'query' => $sQuery,
                          'lpv' => 1,
                          'loc' => 'searchhp',
+                         'tab' => 'web',
                         };
   return $self->native_query($sQuery, $rh);
   } # gui_query
@@ -212,7 +208,6 @@ sub native_setup_search
 
   # Finally figure out the url.
   $self->{_next_url} = $self->{_options}{'search_url'} .'?'. $self->hash_to_cgi_string($self->{_options});
-
   } # native_setup_search
 
 
@@ -239,46 +234,45 @@ sub parse_tree
       } # if
     } # unless
   my ($sScore, $sURL, $sTitle, $sDesc);
-  my @aoTD = $oTree->look_down('_tag' => '~comment',
+  my @aoIS = $oTree->look_down('_tag' => '~comment',
                                'text' => ' IS ',
                               );
- TD_TAG:
-  foreach my $oTD (@aoTD)
+ IS_TAG:
+  foreach my $oIS (@aoIS)
     {
-    next TD_TAG unless ref $oTD;
-    print STDERR " +   found a hit comment\n" if 2 <= $self->{_debug};
+    next IS_TAG unless ref $oIS;
+    print STDERR " +   oIS comment is ===". $oIS->as_HTML ."===\n" if 2 <= $self->{_debug};
     # The next element is normally a comment containing the relevance score:
-    my $oREL = $oTD->right;
+    my $oREL = $oIS->right;
     if (ref($oREL)
         &&
         ($oREL->attr('_tag') eq '~comment')
        )
       {
-      print STDERR " +   oREL is ===". $oREL->as_HTML ."===\n" if 2 <= $self->{_debug};
-      if ($oREL->attr('text') =~ m!REL\s+(.+)\s*!)
+      print STDERR " +   oREL comment is ===". $oREL->as_HTML ."===\n" if 2 <= $self->{_debug};
+      if ($oREL->attr('text') =~ m!REL\s+(.+)\s*\Z!)
         {
         $sScore = $1;
         $oREL = $oREL->right;
         } # if
-      } # if
+      } # if found REL comment
     if (ref($oREL)
         &&
         ($oREL->attr('_tag') eq 'a')
        )
       {
-      my $s = $oREL->attr('onmouseover') || $oREL->attr('onfocus');
-      unless ($s =~ m!\sSS\('(.+)'\)!)
+      my $sURL = $oREL->attr('href') || '';
+      unless ($sURL ne '')
         {
-        next TD_TAG;
-        }
-      $sURL = $1;
+        next IS_TAG;
+        } # unless
       $sTitle = $oREL->as_text;
       # Delete so that what's left is the description:
       $oREL->detach;
       } # if found <A>
 
-    my $oTDhit = $oTD->parent;
-    next TD_TAG unless ref $oTDhit;
+    my $oTDhit = $oIS->parent;
+    next IS_TAG unless ref $oTDhit;
     print STDERR " +   oTDhit is ===". $oTDhit->as_HTML ."===\n" if 2 <= $self->{_debug};
     my $oSPAN = $oTDhit->look_down(_tag => 'span');
     if (ref $oSPAN)
