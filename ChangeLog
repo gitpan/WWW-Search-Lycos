@@ -1,3 +1,9 @@
+2002-07-18  Kingpin  <mthurn@copper.dulles.tasc.com>
+
+	* test.pl: rewrite using Test::More
+
+	* Lycos.pm: overhaul for current www.lycos.com formats
+
 2000-12-20
 
 	* VERSION 2.15 RELEASED

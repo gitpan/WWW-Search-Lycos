@@ -3,126 +3,39 @@
 
 use ExtUtils::testlib;
 
-######################### We start with some black magic to print on failure.
+use Test::More tests => 16;
 
-# Change 1..1 below to 1..last_test_to_print .
-# (It may become useful if the test is moved to ./t subdirectory.)
+BEGIN { use_ok('WWW::Search') };
+BEGIN { use_ok('WWW::Search::Test', qw( count_results )) };
+BEGIN { use_ok('WWW::Search::Lycos') };
 
-BEGIN { $| = 1; print "1..7\n"; }
-END {print "not ok 1\n" unless $loaded;}
-use WWW::Search::Lycos;
-$loaded = 1;
-print "ok 1\n";
+# Fake out WWW::Search::Test
+$WWW::Search::Test::oSearch = new WWW::Search('Lycos');
+ok(ref($WWW::Search::Test::oSearch), 'instantiate WWW::Search::Lycos object');
 
-######################### End of black magic.
-
-# Insert your test code below (better if it prints "ok 13"
-# (correspondingly "not ok 13") depending on the success of chunk 13
-# of the test code):
-
-my $iTest = 2;
-
-my $sEngine = 'Lycos';
-my $oSearch = new WWW::Search($sEngine);
-print ref($oSearch) ? '' : 'not ';
-print "ok $iTest\n";
-
-use WWW::Search::Test;
-
-# goto GUI_TEST;
-# goto MULTI_TEST;
 my $debug = 0;
+my $iCount;
 
 # This test returns no results (but we should not get an HTTP error):
-$iTest++;
-$oSearch->native_query($WWW::Search::Test::bogus_query);
-@aoResults = $oSearch->results();
-$iResults = scalar(@aoResults);
-print STDOUT (0 < $iResults) ? 'not ' : '';
-print "ok $iTest\n";
+&my_test('normal', $WWW::Search::Test::bogus_query, 0, 0, $debug);
 
-# This query returns 1 page of results:
-# $debug = 9;
-print STDERR "uni-test:\n" if $debug;
-$iTest++;
-my $sQuery = 'pik'.'aku';
-$oSearch->native_query(
-                       WWW::Search::escape_query($sQuery),
-                         { 'search_debug' => $debug, },
-                      );
-@aoResults = $oSearch->results();
-$iResults = scalar(@aoResults);
-# print STDERR " + got $iResults results for $sQuery\n" if $debug;
-if (($iResults < 1) || (9 < $iResults))
-  {
-  print STDERR " --- got $iResults results for $sQuery, but expected 1..9\n";
-  print STDOUT 'not ';
-  }
-print "ok $iTest\n";
-
-# goto GUI_TEST;
-
-MULTI_TEST:
-# $debug = 9;
-print STDERR "multi-test:\n" if $debug;
-# This query returns MANY pages of results:
-$iTest++;
-$sQuery = 'pic'.'ablu';
-$oSearch->native_query(
-                       WWW::Search::escape_query($sQuery),
-                      { 'search_debug' => $debug, },
-                      );
-$oSearch->maximum_to_retrieve(30); # 3 pages
-@aoResults = $oSearch->results();
-$iResults = scalar(@aoResults);
-# print STDERR " + got $iResults results for $sQuery\n" if $debug;
-if (($iResults < 21))
-  {
-  print STDERR " --- got $iResults results for $sQuery, but expected more than 20\n";
-  print 'not ';
-  } # if
-print "ok $iTest\n";
+&my_test('normal', 'disest'.'ablishmentarianistic', 1, 9, $debug);
+&my_test('normal', 'antidisest'.'ablishmentarianistic', 21, 29, $debug);
 
 GUI_TEST:
-# $debug = 9;
-print STDERR "gui-uni-test:\n" if $debug;
-# This GUI query returns 1 page of results:
-$iTest++;
-$sQuery = '"Ma'.'rtin Thu'.'rn" AND Bi'.'ble AND Galo'.'ob';
-$oSearch->gui_query(
-                    WWW::Search::escape_query($sQuery),
-                      { 'search_debug' => $debug, },
-                   );
-$oSearch->maximum_to_retrieve(20);
-@aoResults = $oSearch->results();
-$iResults = scalar(@aoResults);
-print STDERR " + got $iResults GUI results for $sQuery, expected 1..10\n" if $debug;
-if (($iResults < 1) || (10 < $iResults))
-  {
-  print STDERR " --- got $iResults GUI results for $sQuery, but expected 1..10\n";
-  print STDOUT 'not ';
-  }
-print "ok $iTest\n";
+&my_test('gui', $WWW::Search::Test::bogus_query, 0, 0, $debug);
+&my_test('gui', 'disest'.'ablishmentarianistic', 1, 9, $debug);
+&my_test('gui', 'antidisest'.'ablishmentarianistic', 21, 29, $debug);
 
-# $debug = 9;
-print STDERR "gui-multi-test:\n" if $debug;
-# This GUI query returns 1 page of results:
-$iTest++;
-$sQuery = 'picab'.'lu';
-$oSearch->gui_query(
-                    WWW::Search::escape_query($sQuery),
-                      { 'search_debug' => $debug, },
-                   );
-$oSearch->maximum_to_retrieve(30);
-@aoResults = $oSearch->results();
-$iResults = scalar(@aoResults);
-print STDERR " + got $iResults GUI results for $sQuery, expected 1..\n" if $debug;
-if (($iResults < 1) || (99 < $iResults))
+
+sub my_test
   {
-  print STDERR " --- got $iResults GUI results for $sQuery, but expected 1..\n";
-  print STDOUT 'not ';
-  }
-print "ok $iTest\n";
+  # Same arguments as WWW::Search::Test::count_results()
+  my ($sType, $sQuery, $iMin, $iMax, $iDebug, $iPrintResults) = @_;
+  my $iCount = &count_results(@_);
+  cmp_ok($iCount, '>=', $iMin, qq{lower-bound num-hits for query=$sQuery}) if defined $iMin;
+  cmp_ok($iCount, '<=', $iMax, qq{upper-bound num-hits for query=$sQuery}) if defined $iMax;
+  } # my_test
 
 
 __END__

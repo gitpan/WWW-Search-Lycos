@@ -4,6 +4,6 @@ WriteMakefile(
               'VERSION_FROM' => 'Lycos.pm',
               'PREREQ_PM' => {
                               'HTML::TreeBuilder' => 0,
-                              'WWW::Search' => 2.15,
+                              'WWW::Search::Test' => 2.21,
                              },
              );

@@ -1,11 +1,11 @@
 # Lycos.pm
 # by Wm. L. Scheding and Martin Thurn
 # Copyright (C) 1996-1998 by USC/ISI
-# $Id: Lycos.pm,v 1.23 2000/12/20 16:26:04 mthurn Exp $
+# $Id: Lycos.pm,v 1.25 2002/07/18 19:09:01 mthurn Exp $
 
 =head1 NAME
 
-WWW::Search::Lycos - class for searching Lycos 
+WWW::Search::Lycos - class for searching www.lycos.com
 
 =head1 SYNOPSIS
 
@@ -14,7 +14,7 @@ WWW::Search::Lycos - class for searching Lycos
   my $sQuery = WWW::Search::escape_query("+sushi restaurant +Columbus Ohio");
   $oSearch->native_query($sQuery);
   while (my $oResult = $oSearch->next_result())
-    print $oResult->url, "\n";
+    { print $oResult->url, "\n"; }
 
 =head1 DESCRIPTION
 
@@ -49,7 +49,7 @@ See $TEST_CASES below.
 =head1 AUTHOR
 
 As of 1998-12-07, C<WWW::Search::Lycos> is maintained by Martin Thurn
-(MartinThurn@iname.com).
+(mthurn@cpan.org).
 
 C<WWW::Search::Lycos> was originally written by Martin Thurn,
 based on C<WWW::Search::Yahoo> version 1.12 of 1998-10-22.
@@ -134,8 +134,8 @@ require Exporter;
 @EXPORT_OK = qw();
 @ISA = qw(WWW::Search Exporter);
 
-$VERSION = '2.15';
-$MAINTAINER = 'Martin Thurn <MartinThurn@iname.com>';
+$VERSION = '2.16';
+$MAINTAINER = 'Martin Thurn <mthurn@cpan.org>';
 
 use Carp;
 use HTML::Form;
@@ -148,7 +148,7 @@ sub gui_query
   {
   my ($self, $sQuery, $rh) = @_;
   $self->{'_options'} = {
-                         'search_url' => 'http://www.lycos.com/srch/',
+                         'search_url' => 'http://search.lycos.com/default.asp',
                          'query' => $sQuery,
                          'lpv' => 1,
                          'loc' => 'searchhp',
@@ -167,7 +167,7 @@ sub native_setup_search
   # lycos.com returns 10 hits per page no matter what.
   $self->{'_hits_per_page'} = 10;
 
-  $self->{agent_e_mail} = 'MartinThurn@iname.com';
+  # $self->{agent_e_mail} = 'mthurn@cpan.org';
   $self->user_agent('non-robot');
 
   $self->{_next_to_retrieve} = 1;
@@ -176,33 +176,12 @@ sub native_setup_search
   # The default search uses lycos.com's Advanced Search mechanism:
   if (!defined($self->{_options}))
     {
-    $self->{'search_base_url'} = 'http://lycospro.lycos.com';
-    
-    # -------------------------------------------------------------------------
-    # Modifications: 12/26/99 by dbradford@bdctechnologies.com
-    # New Query String: As of 12/26/99, here is what it looks like querying for "linux"
-    # Query String: http://lycospro.lycos.com/srchpro/?loc=searchhp&lpv=1&query=linux&t=all&type=websites
-    # Removed these options:
-    #		'maxhits' => $self->{_hits_per_page},
-    #       'matchmode' => 'or',
-    #       'cat' => 'lycos',
-    #       'mtemp' => 'nojava',
-    #       'adv' => 1,
-    #
-    # Added these one in:
-    #		'lpv' => '1',
-    #		'loc' => 'searchhp',
-    #		'type' => 'websites',
-    #		't' => 'all',
-    #		'query' => $native_query,
-    # -------------------------------------------------------------------------
+    $self->{'search_base_url'} = 'http://search.lycos.com';
     $self->{_options} = {
-                         'search_url' => $self->{'search_base_url'} .'/srchpro/',
-						 'lpv' => '1',
-						 'loc' => 'searchhp',
-						 'type' => 'websites',
-						 't' => 'all',
-						 'query' => $native_query,
+                         'search_url' => $self->{'search_base_url'} .'/default.asp',
+						 'adv' => '1',
+						 'wfc' => 3,
+						 'wfq' => $native_query,
                         };
     } # if
   $self->{_options}->{'query'} = $native_query;
@@ -210,18 +189,18 @@ sub native_setup_search
   my $options_ref = $self->{_options};
 
   # Copy in options which were passed in our second argument:
-  if (defined($native_options_ref)) 
+  if (defined($native_options_ref))
     {
-    foreach (keys %$native_options_ref) 
+    foreach (keys %$native_options_ref)
       {
       $options_ref->{$_} = $native_options_ref->{$_};
       } # foreach
     } # if
 
   # Copy in options which were set by a child object:
-  if (defined($self->{'_child_options'})) 
+  if (defined($self->{'_child_options'}))
     {
-    foreach (keys %{$self->{'_child_options'}}) 
+    foreach (keys %{$self->{'_child_options'}})
       {
       $self->{'_options'}->{$_} = $self->{'_child_options'}->{$_};
       } # foreach
@@ -233,123 +212,114 @@ sub native_setup_search
   } # native_setup_search
 
 
-# private
-sub native_retrieve_some
+sub parse_tree
   {
-  my ($self) = @_;
-  print STDERR " *   Lycos::native_retrieve_some()\n" if $self->{_debug};
-  
-  # Fast exit if already done:
-  return undef if (!defined($self->{_next_url}));
-  my $sCurrURL = $self->{_next_url};
-  # If this is not the first page of results, sleep so as to not
-  # overload the server:
-  $self->user_agent_delay if 1 < $self->{'_next_to_retrieve'};
-  
-  # Get some:
-  print STDERR " *   sending request ($sCurrURL)\n" if $self->{_debug};
-  # print STDERR " *   sending request ($sCurrURL)\n";
-  my $response = $self->http_request('GET', $sCurrURL);
-  $self->{response} = $response;
-  if (!$response->is_success)
-    {
-    return undef;
-    } # if
-  
-  $self->{'_next_url'} = undef;
-  $self->{'_next_to_retrieve'} += $self->{'_hits_per_page'};
-  print STDERR " *   got response\n" if $self->{_debug};
-
-  # parse the output
-  my $tree = new HTML::TreeBuilder;
-  $tree->parse($response->content);
-  $tree->eof;
+  my $self = shift;
+  my $oTree = shift;
   my $hits_found = 0;
-
-  # Each URL result is in a <LI> tag:
-  my @aoLI = $tree->look_down('_tag', 'li');
-  foreach my $oLI (@aoLI)
+  unless ($self_approximate_result_count)
     {
-    print STDERR " + LI == ", $oLI->as_HTML if 1 < $self->{'_debug'};
-    # actual value:
-    # <li><font face="verdana" size="-1"><a href="http://click.hotbot.com/director.asp?id=1&amp;target=http://www.posta.suedtirol.com/&amp;query=Martin+Thurn&amp;rsource=LCOSADVF">Gasthof Post - St. <b>Martin</b> in <b>Thurn</b>, S. <b>Martin</b> in Badia, Pustertal, Val Pusteria, S&Atilde;&frac14;dtirol, Alto Adige, Italy</a> - Diese Web-Seite verwendet Frames. Frames werden von Ihrem Browser aber nicht unterst&Atilde;&frac14;tzt. </font><br><i><font color="#000000" face="verdana" size="-2">http://www.posta.suedtirol.com/</font></i><p>
-
-    # The URL is in the last <FONT> tag:
-    my @aoFONT = $oLI->look_down('_tag', 'font');
-    $oFONT = $aoFONT[-1];
-    next unless ref($oFONT);
-    my $sURL = $oFONT->as_text;
-    $oFONT->detach;
-    $oFONT->delete;
-    print STDERR " +   URL   == $sURL\n" if 1 < $self->{'_debug'};
-
-    # The title is in the first <A> tag:
-    my $oA = $oLI->look_down('_tag', 'a');
-    next unless ref($oA);
+    my @aoFONT = $oTree->look_down('_tag', 'font',
+                                   sub { defined($_[0]->attr('color')) &&
+                                         $_[0]->attr('color') eq '#666666' },
+                                  );
+ FONT_TAG:
+    foreach my $oBQ (@aoFONT)
+      {
+      if (ref $oBQ)
+        {
+        my $sBQ = $oBQ->as_text;
+        print STDERR " +   BQ == $sBQ\n" if 2 <= $self->{_debug};
+        if ($sBQ =~ m!Results\s+\d+-\d+\s+of\s+([0-9,]+)!i)
+          {
+          my $sCount = $1;
+          print STDERR " +     raw    count == $sCount\n" if 3 <= $self->{_debug};
+          $sCount =~ s!,!!g;
+          print STDERR " +     cooked count == $sCount\n" if 3 <= $self->{_debug};
+          $self->approximate_result_count($sCount);
+          last FONT_TAG;
+          } # if
+        } # if
+      } # foreach
+    } # if
+  my @aoTD = $oTree->look_down('_tag', 'td');
+ TD_TAG:
+  foreach my $oTD (@aoTD)
+    {
+    next TD_TAG unless ref $oTD;
+    print STDERR " +   try oTD ===", $oTD->as_text, "===\n" if 2 <= $self->{_debug};
+    # Make sure this is the number of a hit:
+    next TD_TAG unless $oTD->as_text =~ m!\A\s*\d+\.(\s|\240|&nbsp;|&#160;)*\Z!;
+    # For normal hits, the next TD contains the title; for paid links
+    # the next TD contains all the info for this hit:
+    my $oTDtitle = $oTD->right;
+    next TD_TAG unless ref $oTDtitle;
+    print STDERR " +   oTDtitle is ===". $oTDtitle->as_HTML ."===\n" if 2 <= $self->{_debug};
+    my $oA = $oTDtitle->look_down('_tag', 'a');
+    next TD_TAG unless ref($oA);
     my $sTitle = $oA->as_text;
+    print STDERR " +   found title ===$sTitle===\n" if 2 <= $self->{_debug};
+    if (0)
+      {
+      my $sURL = $oA->attr('href');
+      print STDERR " +   URL is in ===", $sURL, "===\n" if 2 <= $self->{_debug};
+      $sURL = $1 if $sURL =~ m!target=(.+?)&amp;!;
+      } # if 0
+    # Delete so that what's left is the description:
     $oA->detach;
-    $oA->delete;
-    $sTitle = &strip_tags($sTitle);
-    print STDERR " +   TITLE == $sTitle\n" if 1 < $self->{'_debug'};
 
-    # Now, the description is the text of the entire <LI>:
-    my $sDesc = $oLI->as_text;
-    $sDesc =~ s!\A - !!;
+    # The last <FONT> tag contains the url:
+    my @aoFONT = $oTDtitle->look_down('_tag' => 'font');
+    next TD_TAG unless scalar(@aoFONT);
+    my $oFONTurl = $aoFONT[-1];
+    next TD_TAG unless ref($oFONTurl);
+    my $sURL = $oFONTurl->as_text;
+    # Delete so that what's left is the description:
+    $oFONTurl->detach;
+
+    print STDERR " +   descrip is in ===", $oTDtitle->as_HTML, "===\n" if 2 <= $self->{_debug};
+    my $sDesc = $oTDtitle->as_text;
 
     my $hit = new WWW::SearchResult;
     $hit->add_url($sURL);
     $hit->title($sTitle);
-    $hit->description($sDesc);
+    $hit->description(&WWW::Search::strip_tags($sDesc));
+    $hit->change_date($sDate);
     push(@{$self->{cache}}, $hit);
     $self->{'_num_hits'}++;
     $hits_found++;
-    } # foreach
-  # See if there is a NEXT button:
-  my @aoCENTER = $tree->look_down('_tag', 'center');
- CENTER:
-  foreach my $oCENTER (@aoCENTER)
+    } # foreach $oB
+  # Find the next link, if any:
+  my @aoA = $oTree->look_down('_tag', 'a',
+                             sub { $_[0]->as_text eq 'Next' } );
+ A_TAG:
+  # We want the last "next" link on the page:
+  my $oA = $aoA[-1];
+  # foreach my $oA (@aoA)
     {
-    next CENTER unless ref $oCENTER;
-    print STDERR " + CENTER == ", $oCENTER->as_HTML, "\n" if 1 < $self->{'_debug'};
-    my @aoA = $oCENTER->look_down('_tag', 'a');
- A:
-    foreach my $oA (@aoA)
+    next unless ref $oA;
+    # if ($oA->as_text eq 'next')
       {
-      next A unless ref $oA;
-      print STDERR " +   A == ", $oA->as_text, "\n" if 1 < $self->{'_debug'};
-      if (($oA->as_text eq 'next') || ($oA->as_text =~ m!More Web Sites!i))
-        {
-        my $sURL = $HTTP::URI_CLASS->new_abs($oA->attr('href'), $sCurrURL);
-        $self->{_next_url} = $sURL;
-        print STDERR " +   FOUND NEXT BUTTON ($sURL)\n" if 1 < $self->{'_debug'};
-        last CENTER;
-        } # if
-      } # foreach
-    } # foreach $oCENTER
-  # Look for the total result count:
-  my @aoFONT = $tree->look_down('_tag', 'font');
- FONT:
-  foreach my $oFONT (@aoFONT)
-    {
-    next FONT unless ref $oFONT;
-    print STDERR " +   FONT == ", $oFONT->as_text, "\n" if 1 < $self->{'_debug'};
-    if (($oFONT->as_text =~ m!([\d,]+) Web sites were found!i))
-      {
-      # <FONT FACE=verdana COLOR=#999999 SIZE=-2>&nbsp;&nbsp;<B>3,425</B> Web sites were found in a search of the complete Lycos Web catalog</FONT>
-      $i = $1;
-      $i =~ s!,!!g;
-      $self->approximate_result_count(0+$i);
-      last FONT;
+      print STDERR " +   oAnext is ===", $oA->as_HTML, "===\n" if 2 <= $self->{_debug};
+      $self->{_next_url} = $HTTP::URI_CLASS->new_abs($oA->attr('href'), $self->{'_prev_url'});
+      # last A_TAG;
       } # if
-    } # foreach $oFONT
-  $tree->delete;
+    } # foreach
+
+ SKIP_NEXT_LINK:
+
   return $hits_found;
-  } # native_retrieve_some
+  } # parse_tree
 
 
 1;
 
 __END__
 
-URL for GUI query:
-http://www.lycos.com/srch/?lpv=1&loc=searchhp&query=thurn
+2002-07 adanced query:
+http://search.lycos.com/default.asp?loc=searchbox&tab=&query=&adv=1&wfr=&wfw=&wfq=Martin+Thurn&wfr=%2B&wfw=&wfq=&wfr=-&wfw=&wfq=&wfc=3&df0=i&dfq=&df1=e&dfq=&dfc=2&lang=&ca=&submit_button=Submit+Search
+http://search.lycos.com/default.asp?adv=1&wfq=Martin+Thurn&wfc=3&df0=i&dfc=2
+http://search.lycos.com/default.asp?adv=1&wfq=Martin+Thurn&wfc=3
+
+2002-07 gui query:
+http://search.lycos.com/default.asp?lpv=1&loc=searchhp&query=Martin+Thurn
