@@ -69,3 +69,47 @@
 	* lib/WWW/Search/Lycos.pm: new method gui_query, and parse new output format
 
 Revision history for Perl extension WWW::Search::Lycos.
+
+=head1 VERSION HISTORY
+
+For newer changes, see the file ChangeLog in the WWW-Search-Lycos distribution.
+
+=head2 2.09, 1999-12-26
+
+output format fixes, and query string changes for searching Lycos.com (dbradford@bdctechnologies.com)
+
+=head2 2.08, 1999-12-22
+
+point to new path on lycos.com (thanks to David Bradford dbradford@bdctechnologies.com)
+
+=head2 2.07, 1999-12-10
+
+more output format fixes, and missing 'next' link for Sites
+
+=head2 2.05, 1999-12-03
+
+handle new url and new output format for Lycos::Sites.pm
+
+=head2 2.04, 1999-10-22
+
+use strip_tags();
+extract real URL from www.lycos.com's redirection URL
+
+=head2 2.03, 1999-10-05
+
+now uses hash_to_cgi_string()
+
+=head2 2.02, 1999-09-30
+
+Now able to get Web Sites results via child module Sites.pm
+
+=head2 2.01, 1999-07-13
+
+=head2 1.04, 1999-04-30
+
+Now uses lycos.com's advanced query format.
+
+=head2 1.02, 1998-12-10
+
+First public release after being adopted by Martin Thurn.
+

@@ -1,7 +1,7 @@
 # Lycos.pm
 # by Wm. L. Scheding and Martin Thurn
 # Copyright (C) 1996-1998 by USC/ISI
-# $Id: Lycos.pm,v 1.34 2004/01/18 05:04:35 Daddy Exp $
+# $Id: Lycos.pm,v 2.221 2005/02/27 20:47:21 Daddy Exp $
 
 =head1 NAME
 
@@ -59,49 +59,6 @@ THIS SOFTWARE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR IMPLIED
 WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
 MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
-=head1 VERSION HISTORY
-
-For newer changes, see the file ChangeLog in the WWW-Search-Lycos distribution.
-
-=head2 2.09, 1999-12-26
-
-output format fixes, and query string changes for searching Lycos.com (dbradford@bdctechnologies.com)
-
-=head2 2.08, 1999-12-22
-
-point to new path on lycos.com (thanks to David Bradford dbradford@bdctechnologies.com)
-
-=head2 2.07, 1999-12-10
-
-more output format fixes, and missing 'next' link for Sites
-
-=head2 2.05, 1999-12-03
-
-handle new url and new output format for Lycos::Sites.pm
-
-=head2 2.04, 1999-10-22
-
-use strip_tags();
-extract real URL from www.lycos.com's redirection URL
-
-=head2 2.03, 1999-10-05
-
-now uses hash_to_cgi_string()
-
-=head2 2.02, 1999-09-30
-
-Now able to get Web Sites results via child module Sites.pm
-
-=head2 2.01, 1999-07-13
-
-=head2 1.04, 1999-04-30
-
-Now uses lycos.com's advanced query format.
-
-=head2 1.02, 1998-12-10
-
-First public release after being adopted by Martin Thurn.
-
 =cut
 
 #####################################################################
@@ -113,12 +70,11 @@ require Exporter;
 @EXPORT_OK = qw();
 @ISA = qw(WWW::Search Exporter);
 
-$VERSION = '2.22';
+my
+$VERSION = do { my @r = (q$Revision: 2.221 $ =~ /\d+/g); sprintf "%d."."%03d" x $#r, @r };
 $MAINTAINER = 'Martin Thurn <mthurn@cpan.org>';
 
 use Carp;
-use HTML::Form;
-use HTML::TreeBuilder;
 use URI::Escape;
 use WWW::Search;
 use WWW::Search::Result;
@@ -325,11 +281,3 @@ http://search.lycos.com/default.asp?loc=searchbox&query=thurn&tab=web
 
 2004-01 advanced query:
 http://search.lycos.com/default.asp?loc=searchbox&query=thurn&adv=1&tab=web&wfc=2&wfr=&wfw=&wfq=martin+thurn&wfr=&wfw=&wfq=&dfi=&dfe=&lang=&adf=&ca=&submit_button=Submit+Search
-
-2002-07 advanced query:
-http://search.lycos.com/default.asp?loc=searchbox&tab=&query=&adv=1&wfr=&wfw=&wfq=Martin+Thurn&wfr=%2B&wfw=&wfq=&wfr=-&wfw=&wfq=&wfc=3&df0=i&dfq=&df1=e&dfq=&dfc=2&lang=&ca=&submit_button=Submit+Search
-http://search.lycos.com/default.asp?adv=1&wfq=Martin+Thurn&wfc=3&df0=i&dfc=2
-http://search.lycos.com/default.asp?adv=1&wfq=Martin+Thurn&wfc=3
-
-2002-07 gui query:
-http://search.lycos.com/default.asp?lpv=1&loc=searchhp&query=Martin+Thurn
