@@ -1,3 +1,7 @@
+2003-12-29  Kingpin  <mthurn@verizon.net>
+
+	* t/basic.t: make all tests pass
+
 2003-10-22  Kingpin  <mthurn@verizon.net>
 
 	* Lycos.pm (parse_tree): fix typo which caused blank URLs (thanks to Thomas Busch)

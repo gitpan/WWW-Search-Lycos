@@ -5,6 +5,7 @@ version_from('Lycos.pm');
 author('Martin Thurn <mthurn@cpan.org>');
 license('perl');
 
+requires('perl' => 5.004);
 requires('HTML::TreeBuilder');
 requires('WWW::Search::Test' => 2.21);
 # Test::More is needed for `make test`:

@@ -1,7 +1,7 @@
 # Lycos.pm
 # by Wm. L. Scheding and Martin Thurn
 # Copyright (C) 1996-1998 by USC/ISI
-# $Id: Lycos.pm,v 1.30 2003-10-23 07:07:51-04 kingpin Exp kingpin $
+# $Id: Lycos.pm,v 1.32 2003/12/30 02:02:20 Daddy Exp $
 
 =head1 NAME
 
@@ -57,31 +57,7 @@ MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 =head1 VERSION HISTORY
 
-See ChangeLog for more information.
-
-=head2 2.16, 2003-01-27
-
-fix parsing for new lycos.com output format
-
-=head2 2.15, 2000-12-19
-
-rewrite using HTML::TreeBuilder, correcting parsing errors
-
-=head2 2.14, 2000-09-21
-
-was missing GUI results with no description
-
-=head2 2.13, 2000-09-18
-
-BUGFIX for missing page count number
-
-=head2 2.12, 2000-09-15
-
-parse new output format
-
-=head2 2.11, 2000-06-15
-
-new method gui_query, and parse new output format
+For newer changes, see the file ChangeLog in the WWW-Search-Lycos distribution.
 
 =head2 2.09, 1999-12-26
 
@@ -133,7 +109,7 @@ require Exporter;
 @EXPORT_OK = qw();
 @ISA = qw(WWW::Search Exporter);
 
-$VERSION = '2.19';
+$VERSION = '2.21';
 $MAINTAINER = 'Martin Thurn <mthurn@cpan.org>';
 
 use Carp;
