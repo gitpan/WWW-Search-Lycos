@@ -1,7 +1,7 @@
 # Lycos.pm
 # by Wm. L. Scheding and Martin Thurn
 # Copyright (C) 1996-1998 by USC/ISI
-# $Id: Lycos.pm,v 1.25 2002/07/18 19:09:01 mthurn Exp $
+# $Id: Lycos.pm,v 1.27 2003-03-28 08:09:09-05 kingpin Exp kingpin $
 
 =head1 NAME
 
@@ -63,6 +63,10 @@ MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 =head1 VERSION HISTORY
 
 If it is not listed here, then it was not a meaningful nor released revision.
+
+=head2 2.16, 2003-01-27
+
+fix parsing for new lycos.com output format
 
 =head2 2.15, 2000-12-19
 
@@ -134,7 +138,7 @@ require Exporter;
 @EXPORT_OK = qw();
 @ISA = qw(WWW::Search Exporter);
 
-$VERSION = '2.16';
+$VERSION = '2.17';
 $MAINTAINER = 'Martin Thurn <mthurn@cpan.org>';
 
 use Carp;
@@ -219,72 +223,77 @@ sub parse_tree
   my $hits_found = 0;
   unless ($self_approximate_result_count)
     {
-    my @aoFONT = $oTree->look_down('_tag', 'font',
-                                   sub { defined($_[0]->attr('color')) &&
-                                         $_[0]->attr('color') eq '#666666' },
-                                  );
- FONT_TAG:
-    foreach my $oBQ (@aoFONT)
+    my $oTITLE = $oTree->look_down('_tag' => 'title');
+    if (ref $oTITLE)
       {
-      if (ref $oBQ)
+      my $sBQ = $oTITLE->as_text;
+      print STDERR " +   BQ == $sBQ\n" if 2 <= $self->{_debug};
+      if ($sBQ =~ m!\s*\d+\s+thru\s+\d+\s+of\s+([0-9,]+)!i)
         {
-        my $sBQ = $oBQ->as_text;
-        print STDERR " +   BQ == $sBQ\n" if 2 <= $self->{_debug};
-        if ($sBQ =~ m!Results\s+\d+-\d+\s+of\s+([0-9,]+)!i)
-          {
-          my $sCount = $1;
-          print STDERR " +     raw    count == $sCount\n" if 3 <= $self->{_debug};
-          $sCount =~ s!,!!g;
-          print STDERR " +     cooked count == $sCount\n" if 3 <= $self->{_debug};
-          $self->approximate_result_count($sCount);
-          last FONT_TAG;
-          } # if
+        my $sCount = $1;
+        print STDERR " +     raw    count == $sCount\n" if 3 <= $self->{_debug};
+        $sCount =~ s!,!!g;
+        print STDERR " +     cooked count == $sCount\n" if 3 <= $self->{_debug};
+        $self->approximate_result_count($sCount);
         } # if
-      } # foreach
-    } # if
-  my @aoTD = $oTree->look_down('_tag', 'td');
+      } # if
+    } # unless
+  my ($sScore, $sURL, $sTitle, $sDesc);
+  my @aoTD = $oTree->look_down('_tag' => '~comment',
+                               'text' => ' IS ',
+                              );
  TD_TAG:
   foreach my $oTD (@aoTD)
     {
     next TD_TAG unless ref $oTD;
-    print STDERR " +   try oTD ===", $oTD->as_text, "===\n" if 2 <= $self->{_debug};
-    # Make sure this is the number of a hit:
-    next TD_TAG unless $oTD->as_text =~ m!\A\s*\d+\.(\s|\240|&nbsp;|&#160;)*\Z!;
-    # For normal hits, the next TD contains the title; for paid links
-    # the next TD contains all the info for this hit:
-    my $oTDtitle = $oTD->right;
-    next TD_TAG unless ref $oTDtitle;
-    print STDERR " +   oTDtitle is ===". $oTDtitle->as_HTML ."===\n" if 2 <= $self->{_debug};
-    my $oA = $oTDtitle->look_down('_tag', 'a');
-    next TD_TAG unless ref($oA);
-    my $sTitle = $oA->as_text;
-    print STDERR " +   found title ===$sTitle===\n" if 2 <= $self->{_debug};
-    if (0)
+    print STDERR " +   found a hit comment\n" if 2 <= $self->{_debug};
+    # The next element is normally a comment containing the relevance score:
+    my $oREL = $oTD->right;
+    if (ref($oREL)
+        &&
+        ($oREL->attr('_tag') eq '~comment')
+       )
       {
-      my $sURL = $oA->attr('href');
-      print STDERR " +   URL is in ===", $sURL, "===\n" if 2 <= $self->{_debug};
-      $sURL = $1 if $sURL =~ m!target=(.+?)&amp;!;
-      } # if 0
-    # Delete so that what's left is the description:
-    $oA->detach;
+      print STDERR " +   oREL is ===". $oREL->as_HTML ."===\n" if 2 <= $self->{_debug};
+      if ($oREL->attr('text') =~ m!REL\s+(.+)\s*!)
+        {
+        $sScore = $1;
+        $oREL = $oREL->right;
+        } # if
+      } # if
+    if (ref($oREL)
+        &&
+        ($oREL->attr('_tag') eq 'a')
+       )
+      {
+      my $s = $oREL->attr('onmouseover') || $oREL->attr('onfocus');
+      unless ($s =~ m!\sSS\('(.+)'\)!)
+        {
+        next TD_TAG;
+        }
+      $sURL = $1;
+      $sTitle = $oREL->as_text;
+      # Delete so that what's left is the description:
+      $oREL->detach;
+      } # if found <A>
 
-    # The last <FONT> tag contains the url:
-    my @aoFONT = $oTDtitle->look_down('_tag' => 'font');
-    next TD_TAG unless scalar(@aoFONT);
-    my $oFONTurl = $aoFONT[-1];
-    next TD_TAG unless ref($oFONTurl);
-    my $sURL = $oFONTurl->as_text;
-    # Delete so that what's left is the description:
-    $oFONTurl->detach;
-
-    print STDERR " +   descrip is in ===", $oTDtitle->as_HTML, "===\n" if 2 <= $self->{_debug};
-    my $sDesc = $oTDtitle->as_text;
+    my $oTDhit = $oTD->parent;
+    next TD_TAG unless ref $oTDhit;
+    print STDERR " +   oTDhit is ===". $oTDhit->as_HTML ."===\n" if 2 <= $self->{_debug};
+    my $oSPAN = $oTDhit->look_down(_tag => 'span');
+    if (ref $oSPAN)
+      {
+      $oSPAN->detach;
+      $oSPAN->delete;
+      } # if
+    my $sDesc = $oTDhit->as_text;
+    print STDERR " +   found desc ===$sDesc===\n" if 2 <= $self->{_debug};
 
     my $hit = new WWW::SearchResult;
     $hit->add_url($sURL);
     $hit->title($sTitle);
     $hit->description(&WWW::Search::strip_tags($sDesc));
-    $hit->change_date($sDate);
+    $hit->score($sScore);
     push(@{$self->{cache}}, $hit);
     $self->{'_num_hits'}++;
     $hits_found++;
@@ -295,17 +304,11 @@ sub parse_tree
  A_TAG:
   # We want the last "next" link on the page:
   my $oA = $aoA[-1];
-  # foreach my $oA (@aoA)
+  if (ref $oA)
     {
-    next unless ref $oA;
-    # if ($oA->as_text eq 'next')
-      {
-      print STDERR " +   oAnext is ===", $oA->as_HTML, "===\n" if 2 <= $self->{_debug};
-      $self->{_next_url} = $HTTP::URI_CLASS->new_abs($oA->attr('href'), $self->{'_prev_url'});
-      # last A_TAG;
-      } # if
-    } # foreach
-
+    print STDERR " +   oAnext is ===", $oA->as_HTML, "===\n" if 2 <= $self->{_debug};
+    $self->{_next_url} = $self->absurl($self->{'_prev_url'}, $oA->attr('href'));
+    } # if
  SKIP_NEXT_LINK:
 
   return $hits_found;

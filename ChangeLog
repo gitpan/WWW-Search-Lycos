@@ -1,3 +1,7 @@
+2003-01-27  Kingpin  <mthurn@carbon>
+
+	* Lycos.pm (parse_tree): fix parsing for new lycos.com output format
+
 2002-07-18  Kingpin  <mthurn@copper.dulles.tasc.com>
 
 	* test.pl: rewrite using Test::More

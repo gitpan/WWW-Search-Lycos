@@ -14,7 +14,6 @@ $WWW::Search::Test::oSearch = new WWW::Search('Lycos');
 ok(ref($WWW::Search::Test::oSearch), 'instantiate WWW::Search::Lycos object');
 
 my $debug = 0;
-my $iCount;
 
 # This test returns no results (but we should not get an HTTP error):
 &my_test('normal', $WWW::Search::Test::bogus_query, 0, 0, $debug);
@@ -33,8 +32,8 @@ sub my_test
   # Same arguments as WWW::Search::Test::count_results()
   my ($sType, $sQuery, $iMin, $iMax, $iDebug, $iPrintResults) = @_;
   my $iCount = &count_results(@_);
-  cmp_ok($iCount, '>=', $iMin, qq{lower-bound num-hits for query=$sQuery}) if defined $iMin;
-  cmp_ok($iCount, '<=', $iMax, qq{upper-bound num-hits for query=$sQuery}) if defined $iMax;
+  cmp_ok($iCount, '>=', $iMin, qq{lower-bound num-hits for $sType query=$sQuery}) if defined $iMin;
+  cmp_ok($iCount, '<=', $iMax, qq{upper-bound num-hits for $sType query=$sQuery}) if defined $iMax;
   } # my_test
 
 
