@@ -45,7 +45,7 @@ print STDERR "\n\n\n\n" if $debug;
 
 # This query returns 1 page of results:
 $iTest++;
-my $sQuery = 'vjb'.'rooks';
+my $sQuery = 'pik'.'aku';
 $oSearch->native_query(
                        WWW::Search::escape_query($sQuery),
                          { 'search_debug' => $debug, },

@@ -1,3 +1,11 @@
+2000-09-15
+
+	* VERSION 2.12 RELEASED
+	
+2000-09-15  Kingpin  <mthurn@tasc.com>
+
+	* lib/WWW/Search/Lycos.pm (native_retrieve_some): parse new output format
+
 2000-06-15  Kingpin  <mthurn@tasc.com>
 
 	* lib/WWW/Search/Lycos.pm: new method gui_query, and parse new output format

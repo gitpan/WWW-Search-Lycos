@@ -1,7 +1,7 @@
 # Lycos.pm
 # by Wm. L. Scheding and Martin Thurn
 # Copyright (C) 1996-1998 by USC/ISI
-# $Id: Lycos.pm,v 1.18 2000/06/15 19:39:27 mthurn Exp $
+# $Id: Lycos.pm,v 1.19 2000/09/15 18:19:57 mthurn Exp $
 
 =head1 NAME
 
@@ -64,6 +64,10 @@ MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 If it is not listed here, then it was not a meaningful nor released revision.
 
+=head2 2.12, 2000-09-15
+
+parse new output format
+
 =head2 2.11, 2000-06-15
 
 new method gui_query, and parse new output format
@@ -118,7 +122,7 @@ require Exporter;
 @EXPORT_OK = qw();
 @ISA = qw(WWW::Search Exporter);
 
-$VERSION = '2.11';
+$VERSION = '2.12';
 $MAINTAINER = 'Martin Thurn <MartinThurn@iname.com>';
 
 use Carp ();
@@ -279,8 +283,14 @@ sub native_retrieve_some
       # Actual lines of input are:
       # <B>Web Pages</B>&nbsp;<I>(37054)</I>
       # <b>Web Pages
+      # <FONT FACE=verdana COLOR=#999999 SIZE=-2>&nbsp;&nbsp;<B>199,255</B> Web sites were found in 0.1697 seconds during an Advanced Search of All the Web</FONT>
       print STDERR " page list intro\n" if ($self->{_debug});
-      $self->approximate_result_count($1) if m=\((\d+)\)=;
+      if (m=\(([0-9,]+)\)= || m=<B>([0-9,]+)</B>=i)
+        {
+        my $sCount = $1;
+        $sCount =~ s!,!!g;
+        $self->approximate_result_count($sCount);
+        } # if
       $state = $HITS;
       } # if
     elsif ($state eq $HEADER && m!<B>([,\d]+)</B>\s*Web\ssites?\s(?:were|was)\sfound!i)
@@ -331,7 +341,7 @@ sub native_retrieve_some
       # Actual line of input is:
       # <CENTER><TABLE BGCOLOR="#FFFFFF" CELLSPACING=0 CELLPADDING=3 BORDER=0><TR><TD ALIGN=MIDDLE><FONT SIZE=-1 FACE=Verdana><a href="http://www.lycos.com/hotbot-redirect.html?query=vjbrooks">Second opinion? Try searching for "<B>vjbrooks</B>" at</a></font></td><TD VALIGN=MIDDLE><a href="http://www.lycos.com/hotbot-redirect.html?query=vjbrooks"><IMG SRC="http://a284.g.akamai.net/f/284/987/12h/lygo.com/ly/p/hb_sr.gif" BORDER=0 WIDTH=100 HEIGHT=29></a></TD></TR></TABLE></CENTER><P>
       print STDERR "no next button\n" if 2 <= $self->{_debug};
-      last LINE_OF_INPUT;
+      # last LINE_OF_INPUT;
       }
 
     elsif ($state eq $HITS && m!<P>!i)
