@@ -5,6 +5,7 @@ WriteMakefile(
               'NAME' => 'WWW::Search::Lycos',
               'VERSION_FROM' => 'lib/WWW/Search/Lycos.pm',
               'PREREQ_PM' => {
+                              'URI' => 1.09,
                               'WWW::Search' => 2.13,
                              },
 );

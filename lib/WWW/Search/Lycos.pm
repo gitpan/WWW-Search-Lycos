@@ -1,7 +1,7 @@
 # Lycos.pm
 # by Wm. L. Scheding and Martin Thurn
 # Copyright (C) 1996-1998 by USC/ISI
-# $Id: Lycos.pm,v 1.19 2000/09/15 18:19:57 mthurn Exp $
+# $Id: Lycos.pm,v 1.20 2000/09/18 17:17:06 mthurn Exp $
 
 =head1 NAME
 
@@ -64,6 +64,10 @@ MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 If it is not listed here, then it was not a meaningful nor released revision.
 
+=head2 2.13, 2000-09-18
+
+BUGFIX for missing page count number
+
 =head2 2.12, 2000-09-15
 
 parse new output format
@@ -122,7 +126,7 @@ require Exporter;
 @EXPORT_OK = qw();
 @ISA = qw(WWW::Search Exporter);
 
-$VERSION = '2.12';
+$VERSION = '2.13';
 $MAINTAINER = 'Martin Thurn <MartinThurn@iname.com>';
 
 use Carp ();
@@ -298,10 +302,11 @@ sub native_retrieve_some
       # Actual line of input are:
       # <FONT FACE=verdana COLOR=#999999 SIZE=-2>&nbsp;&nbsp;<B>127</B> Web sites were found in a search of the complete Lycos Web catalog</FONT>
       # <FONT FACE=verdana COLOR=#999999 SIZE=-2>&nbsp;&nbsp;<B>1</B> Web site was found in 0.0502 seconds during an Advanced Search of All the Web</FONT>
-      print STDERR " site list intro\n" if ($self->{_debug});
       my $i = $1;
-      $i =~ s/,//;
-      $self->approximate_result_count($1);
+      print STDERR " site list intro ($i-->" if ($self->{_debug});
+      $i =~ s/,//g;
+      print STDERR "$i)\n" if ($self->{_debug});
+      $self->approximate_result_count($i);
       $state = $HITS;
       } # if
 

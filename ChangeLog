@@ -1,3 +1,11 @@
+2000-09-19
+
+	* VERSION 2.13 RELEASED
+	
+2000-09-18  Kingpin  <mthurn@tasc.com>
+
+	* lib/WWW/Search/Lycos.pm (native_retrieve_some): BUGFIX for missing page count number
+
 2000-09-15
 
 	* VERSION 2.12 RELEASED
