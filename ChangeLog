@@ -1,3 +1,11 @@
+2000-12-20
+
+	* VERSION 2.15 RELEASED
+	
+2000-12-19  Kingpin  <mthurn@tasc.com>
+
+	* lib/WWW/Search/Lycos.pm (native_retrieve_some): rewrite using HTML::TreeBuilder, correcting parsing errors
+
 2000-09-20
 
 	* VERSION 2.14 RELEASED
