@@ -1,7 +1,7 @@
 # Lycos.pm
 # by Wm. L. Scheding and Martin Thurn
 # Copyright (C) 1996-1998 by USC/ISI
-# $Id: Lycos.pm,v 1.20 2000/09/18 17:17:06 mthurn Exp $
+# $Id: Lycos.pm,v 1.21 2000/09/21 13:16:45 mthurn Exp $
 
 =head1 NAME
 
@@ -63,6 +63,10 @@ MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 =head1 VERSION HISTORY
 
 If it is not listed here, then it was not a meaningful nor released revision.
+
+=head2 2.14, 2000-09-21
+
+was missing GUI results with no description
 
 =head2 2.13, 2000-09-18
 
@@ -126,7 +130,7 @@ require Exporter;
 @EXPORT_OK = qw();
 @ISA = qw(WWW::Search Exporter);
 
-$VERSION = '2.13';
+$VERSION = '2.14';
 $MAINTAINER = 'Martin Thurn <MartinThurn@iname.com>';
 
 use Carp ();
@@ -416,19 +420,23 @@ sub native_retrieve_some
     
     elsif ($state eq $HITS && 
            (m@^(?:<LI>|\s)?.*?<a href=\"?([^">]+?)\"?\>(.*?)</a>\s-\s(.*?)</FONT>@i ||
-            m@<LI>.*?<a href=\"?([^">]+?)\"?\>(.*?)</A>&nbsp;\<BR\>(.*?)</FONT>@i))
+            m@<LI>.*?<a href=\"?([^">]+?)\"?\>(.*?)</A>&nbsp;\<BR\>(.*?)</FONT>@i ||
+            m!<LI><FONT.+?><a href=\"?([^">]+?)\"?>(.*?)</a></FONT>!))
       {
       # Actual line of input is:
       # <li><a href=http://www.cds.com/>CD Solutions Inc. CD-ROM, Replication, and Duplication page</a> - <font size=-1>CD Solutions makes CD-ROM production easy</font> 
       #  <a href="http://www.toysrgus.com">The <b>Star</b> <b>Wars</b> Collectors Archive</a> - <font size=-1>An archive of <b>Star</b> <b>Wars</b> Collectibles.</font> <font size=1>&nbsp;<br><br></font>
       # <a href="http://www.madal.com">Wholesale Only! Pokemon, Magic, <b>Star</b> <b>Wars</b>, <b>Star</b> Trek.  Sales to Qualified retail stores only!</a> - <font size=-1>Wholesale Sales to qualified retail outlets only. We are authorized distributors for Wizards of the Coast, Decipher and most other trading card game companies.  We have Pokemon.</font> <font size=1>&nbsp;<br><br></font>
+      # Sometimes there is no description:
+      # <LI><FONT FACE=verdana SIZE=-1><a href="http://click.hotbot.com/director.asp?id=10&target=http://www.rutgers.edu/&query=university&rsource=LCOSWFW">Rutgers, The State <b>University</b> of New Jersey</a></FONT><BR><FONT FACE=verdana size=-1 COLOR=#666666>http://www.rutgers.edu/</FONT>
       print STDERR "hit url+desc line\n" if 2 <= $self->{_debug};
       my ($sURL, $sTitle, $sDesc) = ($1,$2,$3);
+      $sDesc ||= '';
       $sURL = unescape_query($1) if $sURL =~ m/target=(.+?)&/i;
-      if (defined($hit)) 
+      if (defined($hit))
         {
         push(@{$self->{cache}}, $hit);
-        }
+        } # if
       $hit = new WWW::SearchResult;
       $hit->add_url($sURL);
       $hits_found++;

@@ -84,7 +84,7 @@ print "ok $iTest\n";
 print STDERR "\n\n\n\n" if $debug;
 
 GUI_TEST:
-# This query returns 1 page of results:
+# This GUI query returns 1 page of results:
 $iTest++;
 # $debug = 9;
 $sQuery = '"Ma'.'rtin Thu'.'rn" AND Bi'.'ble AND Galo'.'ob';
@@ -115,36 +115,36 @@ print "ok $iTest\n";
 $iTest++;
 # $debug = 9;
 $sQuery = '+LS'.'AM +repli'.'cation';
-$oSearch->gui_query(
-                    WWW::Search::escape_query($sQuery),
-                      { 'search_debug' => $debug, },
-                   );
+$oSearch->native_query(
+                       WWW::Search::escape_query($sQuery),
+                         { 'search_debug' => $debug, },
+                      );
 $oSearch->maximum_to_retrieve(100);
 @aoResults = $oSearch->results();
 $iResults = scalar(@aoResults);
 print STDERR " + got $iResults results for $sQuery, expected 1..99\n" if $debug;
 if (($iResults < 1) || (99 < $iResults))
   {
-  print STDERR " --- got $iResults GUI results for $sQuery, but expected 1..99\n";
+  print STDERR " --- got $iResults results for $sQuery, but expected 1..99\n";
   print STDOUT 'not ';
   }
 print "ok $iTest\n";
 
-# This query returns 1 page of results:
+# This query returns several pages of results:
 $iTest++;
 # $debug = 9;
 $sQuery = 'LS'.'AM';
-$oSearch->gui_query(
-                    WWW::Search::escape_query($sQuery),
-                      { 'search_debug' => $debug, },
-                   );
+$oSearch->native_query(
+                       WWW::Search::escape_query($sQuery),
+                         { 'search_debug' => $debug, },
+                      );
 $oSearch->maximum_to_retrieve(120);
 @aoResults = $oSearch->results();
 $iResults = scalar(@aoResults);
 print STDERR " + got $iResults results for $sQuery, expected 100..\n" if $debug;
 if ($iResults < 100)
   {
-  print STDERR " --- got $iResults GUI results for $sQuery, but expected more than 100\n";
+  print STDERR " --- got $iResults results for $sQuery, but expected more than 100\n";
   print STDOUT 'not ';
   }
 print "ok $iTest\n";
