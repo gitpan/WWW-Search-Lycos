@@ -1,3 +1,11 @@
+2004-01-17  Kingpin  <mthurn@verizon.net>
+
+	* Lycos.pm (parse_tree): parse size and date for each result; gui_query() is the only query we do now
+
+	* t/basic.t: new tests for new content, etc.
+
+	* t/gui.t: removed file
+
 2003-12-29  Kingpin  <mthurn@verizon.net>
 
 	* t/basic.t: make all tests pass

@@ -1,7 +1,7 @@
 # Lycos.pm
 # by Wm. L. Scheding and Martin Thurn
 # Copyright (C) 1996-1998 by USC/ISI
-# $Id: Lycos.pm,v 1.32 2003/12/30 02:02:20 Daddy Exp $
+# $Id: Lycos.pm,v 1.34 2004/01/18 05:04:35 Daddy Exp $
 
 =head1 NAME
 
@@ -19,12 +19,16 @@ WWW::Search::Lycos - class for searching www.lycos.com
 =head1 DESCRIPTION
 
 This class is a Lycos specialization of L<WWW::Search>.  It handles
-making and interpreting Lycos-site searches F<http://www.Lycos.com>.
+making and interpreting Lycos-site searches F<http://www.lycos.com>.
 
 This class exports no public interface; all interaction should
 be done through L<WWW::Search> objects.
 
 =head1 NOTES
+
+Warning!  As of 2004-01, lycos.com often returns an error page in
+place of the third page of results.  So it is very difficult to get
+more than 20 hits for any query!
 
 www.lycos.com is sometimes slow to respond; but I have not had a
 problem with the default timeout.
@@ -109,27 +113,20 @@ require Exporter;
 @EXPORT_OK = qw();
 @ISA = qw(WWW::Search Exporter);
 
-$VERSION = '2.21';
+$VERSION = '2.22';
 $MAINTAINER = 'Martin Thurn <mthurn@cpan.org>';
 
 use Carp;
 use HTML::Form;
 use HTML::TreeBuilder;
 use URI::Escape;
-use WWW::Search qw( generic_option strip_tags unescape_query );
-use WWW::SearchResult;
+use WWW::Search;
+use WWW::Search::Result;
 
 sub gui_query
   {
-  my ($self, $sQuery, $rh) = @_;
-  $self->{'_options'} = {
-                         'search_url' => 'http://search.lycos.com/default.asp',
-                         'query' => $sQuery,
-                         'lpv' => 1,
-                         'loc' => 'searchhp',
-                         'tab' => 'web',
-                        };
-  return $self->native_query($sQuery, $rh);
+  my $self = shift;
+  return $self->native_query(@_);
   } # gui_query
 
 
@@ -149,18 +146,16 @@ sub native_setup_search
   $self->{_next_to_retrieve} = 1;
   $self->{'_num_hits'} = 0;
 
-  # The default search uses lycos.com's Advanced Search mechanism:
   if (!defined($self->{_options}))
     {
     $self->{'search_base_url'} = 'http://search.lycos.com';
     $self->{_options} = {
                          'search_url' => $self->{'search_base_url'} .'/default.asp',
-						 'adv' => '1',
-						 'wfc' => 3,
-						 'wfq' => $native_query,
+                         'query' => $native_query,
+                         'loc' => 'searchbox',
+                         'tab' => 'web',
                         };
     } # if
-  $self->{_options}->{'query'} = $native_query;
 
   my $options_ref = $self->{_options};
 
@@ -187,6 +182,15 @@ sub native_setup_search
   } # native_setup_search
 
 
+sub preprocess_results_page_OFF
+  {
+  my $self = shift;
+  my $sPage = shift;
+  print STDERR '='x 10, $sPage, '='x 10, "\n";
+  return $sPage;
+  } # preprocess_results_page
+
+
 sub parse_tree
   {
   my $self = shift;
@@ -197,9 +201,9 @@ sub parse_tree
     my $oTITLE = $oTree->look_down('_tag' => 'title');
     if (ref $oTITLE)
       {
-      my $sBQ = $oTITLE->as_text;
-      print STDERR " +   BQ == $sBQ\n" if 2 <= $self->{_debug};
-      if ($sBQ =~ m!\s*\d+\s+thru\s+\d+\s+of\s+([0-9,]+)!i)
+      my $sRC = $oTITLE->as_text;
+      print STDERR " +   RC == $sRC\n" if 2 <= $self->{_debug};
+      if ($sRC =~ m!\s*\d+\s+thru\s+\d+\s+of\s+([0-9,]+)!i)
         {
         my $sCount = $1;
         print STDERR " +     raw    count == $sCount\n" if 3 <= $self->{_debug};
@@ -209,7 +213,10 @@ sub parse_tree
         } # if
       } # if
     } # unless
-  my ($sScore, $sURL, $sTitle, $sDesc);
+  my ($sURL, $sTitle, $sDesc);
+  my $sScore = '';
+  my $sSize = '';
+  my $sDate = '';
   my @aoIS = $oTree->look_down('_tag' => '~comment',
                                'text' => ' IS ',
                               );
@@ -253,17 +260,30 @@ sub parse_tree
     my $oSPAN = $oTDhit->look_down(_tag => 'span');
     if (ref $oSPAN)
       {
+      # This span contains the URL (restated), date, and size:
+      my $oFONT = $oSPAN->look_down(_tag => 'font');
+      if (ref $oFONT)
+        {
+        # This <FONT> contains the URL restated, we don't need it:
+        $oFONT->detach;
+        $oFONT->delete;
+        } # if
+      my $sSPAN = $oSPAN->as_text;
+      print STDERR " +   split SPAN ===$sSPAN===\n" if (2 <= $self->{_debug});
+      ($sDate, $sSize) = split('-', $sSPAN);
       $oSPAN->detach;
       $oSPAN->delete;
       } # if
     my $sDesc = $oTDhit->as_text;
     print STDERR " +   found desc ===$sDesc===\n" if 2 <= $self->{_debug};
 
-    my $hit = new WWW::SearchResult;
+    my $hit = new WWW::Search::Result;
     $hit->add_url($sURL);
     $hit->title($sTitle);
-    $hit->description(&WWW::Search::strip_tags($sDesc));
-    $hit->score($sScore);
+    $hit->description(&strip($sDesc));
+    $hit->score(&strip($sScore));
+    $hit->change_date(&strip($sDate));
+    $hit->size(&strip($sSize));
     push(@{$self->{cache}}, $hit);
     $self->{'_num_hits'}++;
     $hits_found++;
@@ -285,11 +305,28 @@ sub parse_tree
   } # parse_tree
 
 
+sub strip
+  {
+  my $sRaw = shift;
+  my $s = &WWW::Search::strip_tags($sRaw);
+  # Strip leading whitespace:
+  $s =~ s!\A[\240\t\r\n\ ]+  !!x;
+  # Strip trailing whitespace:
+  $s =~ s!  [\240\t\r\n\ ]+\Z!!x;
+  return $s;
+  } # strip
+
 1;
 
 __END__
 
-2002-07 adanced query:
+2004-01 gui query:
+http://search.lycos.com/default.asp?loc=searchbox&query=thurn&tab=web
+
+2004-01 advanced query:
+http://search.lycos.com/default.asp?loc=searchbox&query=thurn&adv=1&tab=web&wfc=2&wfr=&wfw=&wfq=martin+thurn&wfr=&wfw=&wfq=&dfi=&dfe=&lang=&adf=&ca=&submit_button=Submit+Search
+
+2002-07 advanced query:
 http://search.lycos.com/default.asp?loc=searchbox&tab=&query=&adv=1&wfr=&wfw=&wfq=Martin+Thurn&wfr=%2B&wfw=&wfq=&wfr=-&wfw=&wfq=&wfc=3&df0=i&dfq=&df1=e&dfq=&dfc=2&lang=&ca=&submit_button=Submit+Search
 http://search.lycos.com/default.asp?adv=1&wfq=Martin+Thurn&wfc=3&df0=i&dfc=2
 http://search.lycos.com/default.asp?adv=1&wfq=Martin+Thurn&wfc=3

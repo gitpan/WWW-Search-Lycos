@@ -11,14 +11,55 @@ my $iDebug = 0;
 my $iDump = 0;
 
 # goto TEST_NOW;
+
 # This test returns no results (but we should not get an HTTP error):
+diag("Sending bogus query to lycos.com...");
 &my_test('normal', $WWW::Search::Test::bogus_query, 0, 0, $iDebug);
 TEST_NOW:
-$iDebug = 0; # for debugging
-$iDump = 0; # for debugging
+diag("Sending 1-page query to lycos.com...");
+$iDebug = 0;
+$iDump = 0;
 &my_test('normal', 'disest'.'ablishmentarianistic', 1, 9, $iDebug, $iDump);
+cmp_ok(0, '<', $WWW::Search::Test::oSearch->approximate_hit_count,
+       'approximate_hit_count');
+cmp_ok($WWW::Search::Test::oSearch->approximate_hit_count, '<=', 9,
+       'approximate_hit_count');
+# Look at some actual results:
+my @ao = $WWW::Search::Test::oSearch->results();
+cmp_ok(0, '<', scalar(@ao), 'got any results');
+foreach my $oResult (@ao)
+  {
+  like($oResult->url, qr{\Ahttp://},
+       'result URL is http');
+  cmp_ok($oResult->title, 'ne', '',
+         'result title is not empty');
+  cmp_ok($oResult->description, 'ne', '',
+         'result description is not empty');
+  cmp_ok($oResult->size, 'ne', '',
+         'result size is not empty');
+  cmp_ok($oResult->change_date, 'ne', '',
+         'result change_date is not empty');
+  } # foreach
 # goto ALL_DONE;
-&my_test('normal', 'antidisest'.'ablishmentarianistic', 21, 29, $iDebug, $iDump);
+diag("Sending 2-page query to lycos.com...");
+$iDebug = 0;
+$iDump = 0;
+&my_test('normal', 'sq'.'irtle AND warto'.'rtle', 11, 19, $iDebug, $iDump);
+cmp_ok(11, '<=', $WWW::Search::Test::oSearch->approximate_hit_count,
+       'approximate_hit_count');
+cmp_ok($WWW::Search::Test::oSearch->approximate_hit_count, '<=', 19,
+       'approximate_hit_count');
+TODO:
+  {
+  local $TODO = q{www.lycos.com is broken, never returns more than 20 hits};
+  diag("Sending multi-page query to lycos.com...");
+  $iDebug = 0;
+  $iDump = 0;
+  &my_test('normal', 'the lovely Britney Spears', 21, undef, $iDebug, $iDump);
+  cmp_ok(21, '<', $WWW::Search::Test::oSearch->approximate_hit_count,
+         'approximate_hit_count');
+  } # end of TODO block
+
 ALL_DONE:
 exit 0;
 
