@@ -1,7 +1,6 @@
 use inc::Module::Install;
 
-name('WWW-Search-Lycos');
-version_from('lib/WWW/Search/Lycos.pm');
+all_from('lib/WWW/Search/Lycos.pm');
 author('Martin Thurn <mthurn@cpan.org>');
 license('perl');
 

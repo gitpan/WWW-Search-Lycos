@@ -1,7 +1,7 @@
 # Lycos.pm
 # by Wm. L. Scheding and Martin Thurn
 # Copyright (C) 1996-1998 by USC/ISI
-# $Id: Lycos.pm,v 2.221 2005/02/27 20:47:21 Daddy Exp $
+# $Id: Lycos.pm,v 2.222 2008/12/15 00:00:20 Martin Exp $
 
 =head1 NAME
 
@@ -65,23 +65,26 @@ MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 package WWW::Search::Lycos;
 
-require Exporter;
-@EXPORT = qw();
-@EXPORT_OK = qw();
-@ISA = qw(WWW::Search Exporter);
+use strict;
+use warnings;
 
 my
-$VERSION = do { my @r = (q$Revision: 2.221 $ =~ /\d+/g); sprintf "%d."."%03d" x $#r, @r };
-$MAINTAINER = 'Martin Thurn <mthurn@cpan.org>';
+$VERSION = do { my @r = (q$Revision: 2.222 $ =~ /\d+/g); sprintf "%d."."%03d" x $#r, @r };
+our $MAINTAINER = 'Martin Thurn <mthurn@cpan.org>';
 
 use Carp;
 use URI::Escape;
-use WWW::Search;
+use base 'WWW::Search';
 use WWW::Search::Result;
 
 sub gui_query
   {
   my $self = shift;
+  my $sQuery = shift;
+  $self->{_options} = {
+                       search_url => q{http://search.lycos.com/},
+                       query => $sQuery,
+                      };
   return $self->native_query(@_);
   } # gui_query
 
@@ -102,7 +105,7 @@ sub native_setup_search
   $self->{_next_to_retrieve} = 1;
   $self->{'_num_hits'} = 0;
 
-  if (!defined($self->{_options}))
+  if (! defined($self->{_options}))
     {
     $self->{'search_base_url'} = 'http://search.lycos.com';
     $self->{_options} = {
@@ -152,14 +155,17 @@ sub parse_tree
   my $self = shift;
   my $oTree = shift;
   my $hits_found = 0;
-  unless ($self_approximate_result_count)
+  unless ($self->approximate_result_count)
     {
-    my $oTITLE = $oTree->look_down('_tag' => 'title');
+    my $oTITLE = $oTree->look_down(
+                                   _tag => 'strong',
+                                   class => 'ltGry',
+                                  );
     if (ref $oTITLE)
       {
-      my $sRC = $oTITLE->as_text;
+      my $sRC = $oTITLE->parent->as_text;
       print STDERR " +   RC == $sRC\n" if 2 <= $self->{_debug};
-      if ($sRC =~ m!\s*\d+\s+thru\s+\d+\s+of\s+([0-9,]+)!i)
+      if ($sRC =~ m!\s*\d+\s+thru\s+\d+\s+of\s+([0-9,]+)\b!i)
         {
         my $sCount = $1;
         print STDERR " +     raw    count == $sCount\n" if 3 <= $self->{_debug};
@@ -173,60 +179,25 @@ sub parse_tree
   my $sScore = '';
   my $sSize = '';
   my $sDate = '';
-  my @aoIS = $oTree->look_down('_tag' => '~comment',
-                               'text' => ' IS ',
+  my @aoIS = $oTree->look_down(_tag => 'a',
+                               class => 'large',
                               );
  IS_TAG:
   foreach my $oIS (@aoIS)
     {
     next IS_TAG unless ref $oIS;
-    print STDERR " +   oIS comment is ===". $oIS->as_HTML ."===\n" if 2 <= $self->{_debug};
-    # The next element is normally a comment containing the relevance score:
-    my $oREL = $oIS->right;
-    if (ref($oREL)
-        &&
-        ($oREL->attr('_tag') eq '~comment')
-       )
-      {
-      print STDERR " +   oREL comment is ===". $oREL->as_HTML ."===\n" if 2 <= $self->{_debug};
-      if ($oREL->attr('text') =~ m!REL\s+(.+)\s*\Z!)
-        {
-        $sScore = $1;
-        $oREL = $oREL->right;
-        } # if
-      } # if found REL comment
-    if (ref($oREL)
-        &&
-        ($oREL->attr('_tag') eq 'a')
-       )
-      {
-      $sURL = $oREL->attr('href') || '';
-      unless ($sURL ne '')
-        {
-        next IS_TAG;
-        } # unless
-      $sTitle = $oREL->as_text;
-      # Delete so that what's left is the description:
-      $oREL->detach;
-      } # if found <A>
+    print STDERR " +   oIS is ===". $oIS->as_HTML ."===\n" if 2 <= $self->{_debug};
+    my $sURL = $oIS->attr('href');
+    my $sTitle = $oIS->as_text;
 
     my $oTDhit = $oIS->parent;
     next IS_TAG unless ref $oTDhit;
     print STDERR " +   oTDhit is ===". $oTDhit->as_HTML ."===\n" if 2 <= $self->{_debug};
+    $oIS->detach;
+    $oIS->delete;
     my $oSPAN = $oTDhit->look_down(_tag => 'span');
     if (ref $oSPAN)
       {
-      # This span contains the URL (restated), date, and size:
-      my $oFONT = $oSPAN->look_down(_tag => 'font');
-      if (ref $oFONT)
-        {
-        # This <FONT> contains the URL restated, we don't need it:
-        $oFONT->detach;
-        $oFONT->delete;
-        } # if
-      my $sSPAN = $oSPAN->as_text;
-      print STDERR " +   split SPAN ===$sSPAN===\n" if (2 <= $self->{_debug});
-      ($sDate, $sSize) = split('-', $sSPAN);
       $oSPAN->detach;
       $oSPAN->delete;
       } # if
@@ -236,17 +207,14 @@ sub parse_tree
     my $hit = new WWW::Search::Result;
     $hit->add_url($sURL);
     $hit->title($sTitle);
-    $hit->description(&strip($sDesc));
-    $hit->score(&strip($sScore));
-    $hit->change_date(&strip($sDate));
-    $hit->size(&strip($sSize));
+    $hit->description(_strip($sDesc));
     push(@{$self->{cache}}, $hit);
     $self->{'_num_hits'}++;
     $hits_found++;
     } # foreach $oB
   # Find the next link, if any:
-  my @aoA = $oTree->look_down('_tag', 'a',
-                             sub { $_[0]->as_text eq 'Next' } );
+  my @aoA = $oTree->look_down(_tag => 'a',
+                             sub { $_[0]->as_text eq 'Next >' } );
  A_TAG:
   # We want the last "next" link on the page:
   my $oA = $aoA[-1];
@@ -261,7 +229,7 @@ sub parse_tree
   } # parse_tree
 
 
-sub strip
+sub _strip
   {
   my $sRaw = shift;
   my $s = &WWW::Search::strip_tags($sRaw);
@@ -270,7 +238,7 @@ sub strip
   # Strip trailing whitespace:
   $s =~ s!  [\240\t\r\n\ ]+\Z!!x;
   return $s;
-  } # strip
+  } # _strip
 
 1;
 
