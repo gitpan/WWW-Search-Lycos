@@ -1,3 +1,6 @@
+
+# $Id: Makefile.PL,v 1.10 2008/12/15 22:47:34 Martin Exp $
+
 use inc::Module::Install;
 
 all_from('lib/WWW/Search/Lycos.pm');
@@ -9,8 +12,9 @@ requires('HTML::TreeBuilder');
 requires('WWW::Search::Test' => 2.21);
 build_requires('Test::More');
 
-check_nmake();      # check and download nmake.exe for Win32
-&Makefile->write;
+WriteAll;
+
+__END__
 
 print STDERR <<"ENDOFNOTE";
 
@@ -21,6 +25,3 @@ As long as you don't get ALL zero results, it's probably safe to install this mo
 ENDOFNOTE
 
 1;
-
-__END__
-

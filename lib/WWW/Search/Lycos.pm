@@ -1,7 +1,7 @@
 # Lycos.pm
 # by Wm. L. Scheding and Martin Thurn
 # Copyright (C) 1996-1998 by USC/ISI
-# $Id: Lycos.pm,v 2.222 2008/12/15 00:00:20 Martin Exp $
+# $Id: Lycos.pm,v 2.223 2008/12/15 22:47:13 Martin Exp $
 
 =head1 NAME
 
@@ -69,7 +69,7 @@ use strict;
 use warnings;
 
 my
-$VERSION = do { my @r = (q$Revision: 2.222 $ =~ /\d+/g); sprintf "%d."."%03d" x $#r, @r };
+$VERSION = do { my @r = (q$Revision: 2.223 $ =~ /\d+/g); sprintf "%d."."%03d" x $#r, @r };
 our $MAINTAINER = 'Martin Thurn <mthurn@cpan.org>';
 
 use Carp;
@@ -243,9 +243,3 @@ sub _strip
 1;
 
 __END__
-
-2004-01 gui query:
-http://search.lycos.com/default.asp?loc=searchbox&query=thurn&tab=web
-
-2004-01 advanced query:
-http://search.lycos.com/default.asp?loc=searchbox&query=thurn&adv=1&tab=web&wfc=2&wfr=&wfw=&wfq=martin+thurn&wfr=&wfw=&wfq=&dfi=&dfe=&lang=&adf=&ca=&submit_button=Submit+Search
