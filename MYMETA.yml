@@ -8,14 +8,12 @@ build_requires:
   Test::More: 0
 configure_requires:
   ExtUtils::MakeMaker: 6.36
-distribution_type: module
-dynamic_config: 1
-generated_by: 'Module::Install version 1.06'
+dynamic_config: 0
+generated_by: 'Module::Install version 1.06, CPAN::Meta::Converter version 2.120921'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
   version: 1.4
-module_name: WWW::Search::Lycos
 name: WWW-Search-Lycos
 no_index:
   directory:
@@ -24,7 +22,7 @@ no_index:
 requires:
   HTML::TreeBuilder: 0
   WWW::Search::Test: 2.21
-  perl: 5.004
 resources:
   license: http://dev.perl.org/licenses/
-version: 2.224
+version: 2.223
+x_module_name: WWW::Search::Lycos

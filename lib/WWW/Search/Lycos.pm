@@ -1,7 +1,7 @@
 # Lycos.pm
 # by Wm. L. Scheding and Martin Thurn
 # Copyright (C) 1996-1998 by USC/ISI
-# $Id: Lycos.pm,v 2.223 2008/12/15 22:47:13 Martin Exp $
+# $Id: Lycos.pm,v 2.224 2013/03/17 13:18:25 martin Exp $
 
 =head1 NAME
 
@@ -69,25 +69,13 @@ use strict;
 use warnings;
 
 my
-$VERSION = do { my @r = (q$Revision: 2.223 $ =~ /\d+/g); sprintf "%d."."%03d" x $#r, @r };
+$VERSION = do { my @r = (q$Revision: 2.224 $ =~ /\d+/g); sprintf "%d."."%03d" x $#r, @r };
 our $MAINTAINER = 'Martin Thurn <mthurn@cpan.org>';
 
 use Carp;
 use URI::Escape;
 use base 'WWW::Search';
 use WWW::Search::Result;
-
-sub gui_query
-  {
-  my $self = shift;
-  my $sQuery = shift;
-  $self->{_options} = {
-                       search_url => q{http://search.lycos.com/},
-                       query => $sQuery,
-                      };
-  return $self->native_query(@_);
-  } # gui_query
-
 
 sub native_setup_search
   {
@@ -107,12 +95,11 @@ sub native_setup_search
 
   if (! defined($self->{_options}))
     {
+    # As of 2013: http://search.lycos.com/web?q=yoda
     $self->{'search_base_url'} = 'http://search.lycos.com';
     $self->{_options} = {
-                         'search_url' => $self->{'search_base_url'} .'/default.asp',
-                         'query' => $native_query,
-                         'loc' => 'searchbox',
-                         'tab' => 'web',
+                         'search_url' => $self->{'search_base_url'} .'/web',
+                         'q' => $native_query,
                         };
     } # if
 
@@ -150,20 +137,20 @@ sub preprocess_results_page_OFF
   } # preprocess_results_page
 
 
-sub parse_tree
+sub _parse_tree
   {
   my $self = shift;
   my $oTree = shift;
   my $hits_found = 0;
-  unless ($self->approximate_result_count)
+  if (! $self->approximate_result_count)
     {
     my $oTITLE = $oTree->look_down(
-                                   _tag => 'strong',
-                                   class => 'ltGry',
+                                   _tag => 'h2',
+                                   # class => 'ltGry',
                                   );
     if (ref $oTITLE)
       {
-      my $sRC = $oTITLE->parent->as_text;
+      my $sRC = $oTITLE->as_text;
       print STDERR " +   RC == $sRC\n" if 2 <= $self->{_debug};
       if ($sRC =~ m!\s*\d+\s+thru\s+\d+\s+of\s+([0-9,]+)\b!i)
         {
@@ -174,35 +161,47 @@ sub parse_tree
         $self->approximate_result_count($sCount);
         } # if
       } # if
-    } # unless
+    } # if
   my ($sURL, $sTitle, $sDesc);
   my $sScore = '';
   my $sSize = '';
   my $sDate = '';
-  my @aoIS = $oTree->look_down(_tag => 'a',
-                               class => 'large',
+  my @aoIS = $oTree->look_down(_tag => 'div',
+                               class => 'resultText',
                               );
  IS_TAG:
   foreach my $oIS (@aoIS)
     {
-    next IS_TAG unless ref $oIS;
-    print STDERR " +   oIS is ===". $oIS->as_HTML ."===\n" if 2 <= $self->{_debug};
-    my $sURL = $oIS->attr('href');
-    my $sTitle = $oIS->as_text;
-
-    my $oTDhit = $oIS->parent;
-    next IS_TAG unless ref $oTDhit;
-    print STDERR " +   oTDhit is ===". $oTDhit->as_HTML ."===\n" if 2 <= $self->{_debug};
-    $oIS->detach;
-    $oIS->delete;
-    my $oSPAN = $oTDhit->look_down(_tag => 'span');
-    if (ref $oSPAN)
+    next IS_TAG if ! ref $oIS;
+    warn " DDD   oIS is ===". $oIS->as_HTML ."===\n" if 2 <= $self->{_debug};
+    my $oTitle = $oIS->look_down(_tag => 'h4');
+    if (! ref $oTitle)
       {
-      $oSPAN->detach;
-      $oSPAN->delete;
+      warn " EEE   no child <h4> element\n" if 2 <= $self->{_debug};
+      next IS_TAG;
       } # if
-    my $sDesc = $oTDhit->as_text;
+    my $sTitle = $oTitle->as_text;
+    my $oURL = $oIS->look_down(_tag => 'p',
+                               class => 'baseURL',
+                              );
+    if (! ref $oURL)
+      {
+      warn " EEE   no child <p baseURL> element\n" if 2 <= $self->{_debug};
+      next IS_TAG;
+      } # if
+    $oURL->detach;
+    $oURL->delete;
+    my $oDesc = $oIS->look_down(_tag => 'p');
+    if (! ref $oDesc)
+      {
+      warn " EEE   no child <p> element\n" if 2 <= $self->{_debug};
+      next IS_TAG;
+      } # if
+    my $sDesc = $oDesc->as_text;
     print STDERR " +   found desc ===$sDesc===\n" if 2 <= $self->{_debug};
+    my $oParent = $oIS->parent;
+    warn " DDD   oParent is ===". $oParent->as_HTML ."===\n" if 2 <= $self->{_debug};
+    my $sURL = $oParent->attr('title');
 
     my $hit = new WWW::Search::Result;
     $hit->add_url($sURL);
@@ -214,7 +213,9 @@ sub parse_tree
     } # foreach $oB
   # Find the next link, if any:
   my @aoA = $oTree->look_down(_tag => 'a',
-                             sub { $_[0]->as_text eq 'Next >' } );
+                              title => 'Next',
+                              # sub { $_[0]->as_text eq 'Next >' },
+                             );
  A_TAG:
   # We want the last "next" link on the page:
   my $oA = $aoA[-1];
@@ -226,7 +227,7 @@ sub parse_tree
  SKIP_NEXT_LINK:
 
   return $hits_found;
-  } # parse_tree
+  } # _parse_tree
 
 
 sub _strip
